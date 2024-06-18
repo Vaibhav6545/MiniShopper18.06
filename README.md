@@ -1,0 +1,1 @@
+# MiniShopper18.06
