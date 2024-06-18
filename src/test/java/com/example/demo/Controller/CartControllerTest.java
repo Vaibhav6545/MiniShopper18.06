@@ -26,7 +26,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 @ContextConfiguration(classes = {CartController.class})
 @ExtendWith(SpringExtension.class)
 @DisabledInAotMode
-class CartControllerDiffblueTest {
+class CartControllerTest {
     @Autowired
     private CartController cartController;
 
