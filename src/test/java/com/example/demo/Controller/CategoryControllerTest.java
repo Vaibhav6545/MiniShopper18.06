@@ -24,7 +24,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 @ContextConfiguration(classes = {CategoryController.class})
 @ExtendWith(SpringExtension.class)
 @DisabledInAotMode
-class CategoryControllerDiffblueTest {
+class CategoryControllerTest {
     @Autowired
     private CategoryController categoryController;
 
