@@ -31,7 +31,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 @ContextConfiguration(classes = {LoginController.class})
 @ExtendWith(SpringExtension.class)
 @DisabledInAotMode
-class LoginControllerDiffblueTest {
+class LoginControllerTest {
     @Autowired
     private LoginController loginController;
 
