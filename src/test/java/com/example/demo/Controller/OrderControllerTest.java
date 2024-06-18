@@ -30,7 +30,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 @ContextConfiguration(classes = {OrderController.class})
 @ExtendWith(SpringExtension.class)
 @DisabledInAotMode
-class OrderControllerDiffblueTest {
+class OrderControllerTest {
     @Autowired
     private OrderController orderController;
 
