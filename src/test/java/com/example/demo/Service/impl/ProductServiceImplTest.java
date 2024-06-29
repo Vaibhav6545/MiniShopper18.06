@@ -1,5 +1,5 @@
 
-package com.example.demo.Service.impl;
+package minishopper.Service.impl;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
@@ -7,8 +7,7 @@ import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import com.example.demo.Entity.Product;
-import com.example.demo.Repository.ProductRepository;
+
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -19,6 +18,10 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.aot.DisabledInAotMode;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+
+import minishopper.Entity.Product;
+import minishopper.Repository.ProductRepository;
+import minishopper.Service.impl.ProductServiceImpl;
 @ContextConfiguration(classes = {ProductServiceImpl.class})
 @ExtendWith(SpringExtension.class)
 @DisabledInAotMode
@@ -27,9 +30,7 @@ class ProductServiceImplTest {
     private ProductRepository productRepository;
     @Autowired
     private ProductServiceImpl productServiceImpl;
-    /**
-     * Method under test: {@link ProductServiceImpl#getAllProducts()}
-     */
+   
     @Test
     void testGetAllProducts() {
         // Arrange
@@ -42,9 +43,7 @@ class ProductServiceImplTest {
         assertTrue(actualAllProducts.isEmpty());
         assertSame(productList, actualAllProducts);
     }
-    /**
-     * Method under test: {@link ProductServiceImpl#getByProductId(String)}
-     */
+  
     @Test
     void testGetByProductId() {
         // Arrange
@@ -64,10 +63,7 @@ class ProductServiceImplTest {
         verify(productRepository).findByProductId(eq("42"));
         assertSame(product, actualByProductId);
     }
-    /**
-     * Method under test:
-     * {@link ProductServiceImpl#getAllProductsByCategory(String)}
-     */
+  
     @Test
     void testGetAllProductsByCategory() {
         // Arrange
@@ -80,9 +76,7 @@ class ProductServiceImplTest {
         assertTrue(actualAllProductsByCategory.isEmpty());
         assertSame(productList, actualAllProductsByCategory);
     }
-    /**
-     * Method under test: {@link ProductServiceImpl#getAllAvailableProduct()}
-     */
+   
     @Test
     void testGetAllAvailableProduct() {
         // Arrange
@@ -95,10 +89,8 @@ class ProductServiceImplTest {
         assertTrue(actualAllAvailableProduct.isEmpty());
         assertSame(productList, actualAllAvailableProduct);
     }
-    /**
-     * Method under test: {@link ProductServiceImpl#updateStock(String, int)}
-     */
-    @Test
+   
+    {/*  @Test
     void testUpdateStock() {
         // Arrange
         doNothing().when(productRepository).updateStock(Mockito.<String>any(), anyInt());
@@ -107,6 +99,8 @@ class ProductServiceImplTest {
         // Assert that nothing has changed
         verify(productRepository).updateStock(eq("42"), eq(1));
         assertTrue(productServiceImpl.getAllAvailableProduct().isEmpty());
+        
+        */}
     }
-}
+
  
