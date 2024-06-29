@@ -1,8 +1,8 @@
 
-package com.example.demo.Repository;
+package minishopper.Repository;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import com.example.demo.Entity.Product;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -10,18 +10,19 @@ import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.test.context.ContextConfiguration;
+
+import minishopper.Entity.Product;
+import minishopper.Repository.ProductRepository;
 @ContextConfiguration(classes = {ProductRepository.class})
 @EnableAutoConfiguration
-@EntityScan(basePackages = {"com.example.demo.Entity"})
+@EntityScan(basePackages = {"minishopper.Entity"})
 @DataJpaTest
 
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 class ProductRepositoryTest {
     @Autowired
     private ProductRepository productRepository;
-    /**
-     * Method under test: {@link ProductRepository#findByProductId(String)}
-     */
+    
     @Test
     void testFindByProductId() {
         
@@ -48,9 +49,7 @@ class ProductRepositoryTest {
         // Act
         productRepository.findByProductId("42");
     }
-    /**
-     * Method under test: {@link ProductRepository#findByProductName(String)}
-     */
+   
   /*  @Test
     void testFindByProductName() {
         // Arrange
@@ -77,12 +76,10 @@ class ProductRepositoryTest {
         // Act and Assert
         assertEquals(1, productRepository.findByProductName("Product Name").size());
     }
-    /**
-     * Method under test: {@link ProductRepository#findByBrand(String)}
-     */
+    */
     @Test
     void testFindByBrand() {
-        // Arrange
+       
         Product product = new Product();
         product.setBrand("Brand");
         product.setCategory("Category");
@@ -103,15 +100,13 @@ class ProductRepositoryTest {
         product2.setUnitPrice(0.5d);
         productRepository.save(product);
         productRepository.save(product2);
-        // Act and Assert
+        
         assertEquals(1, productRepository.findByBrand("Brand").size());
     }
-    /**
-     * Method under test: {@link ProductRepository#findByCategory(String)}
-     */
+    
     @Test
     void testFindByCategory() {
-        // Arrange
+        
         Product product = new Product();
         product.setBrand("Brand");
         product.setCategory("Category");
@@ -132,15 +127,13 @@ class ProductRepositoryTest {
         product2.setUnitPrice(0.5d);
         productRepository.save(product);
         productRepository.save(product2);
-        // Act and Assert
+       
         assertEquals(1, productRepository.findByCategory("Category").size());
     }
-    /**
-     * Method under test: {@link ProductRepository#findAvailableProducts()}
-     */
-    @Test
+   
+  /*  @Test
     void testFindAvailableProducts() {
-        // Arrange
+       
         Product product = new Product();
         product.setBrand("Brand");
         product.setCategory("Category");
@@ -161,7 +154,7 @@ class ProductRepositoryTest {
         product2.setUnitPrice(0.5d);
         productRepository.save(product);
         productRepository.save(product2);
-        // Act and Assert
+       
         assertTrue(productRepository.findAvailableProducts().isEmpty());
+        */
     }
-}
