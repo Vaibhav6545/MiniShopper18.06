@@ -1,207 +1,123 @@
 package minishopper.Controller;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.net.http.HttpHeaders;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
-import java.util.List;
 
-import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
-
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.MalformedJwtException;
-import jakarta.servlet.http.HttpServletRequest;
-import minishopper.Entity.LoginData;
-import minishopper.Entity.User;
-import minishopper.Repository.LoginDataRepository;
-import minishopper.Repository.ProductRepository;
-import minishopper.Repository.UserRepository;
-import minishopper.Response.LoginResponse;
 import minishopper.Service.CustomUserDetailsService;
 import minishopper.Service.LoginDataService;
 import minishopper.Service.UserService;
-import minishopper.Service.impl.UserServiceImpl;
-import minishopper.dtos.JwtResponseDto;
 import minishopper.dtos.LoginDto;
 import minishopper.dtos.UserDto;
-import minishopper.exception.LoginException;
-import minishopper.exception.UnauthorizedException;
 import minishopper.security.JwtHelper;
 
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.aot.DisabledInAotMode;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+@ContextConfiguration(classes = {LoginController.class, AuthenticationManager.class})
+@ExtendWith(SpringExtension.class)
+@DisabledInAotMode
+class LoginControllerTest {
+    @MockBean
+    private AuthenticationManager authenticationManager;
 
+    @MockBean
+    private CustomUserDetailsService customUserDetailsService;
 
-@CrossOrigin(origins = "*")
-@Controller
-@RequestMapping("/users")
-public class LoginController {
-    
-    @Autowired 
-    LoginDataService loginDataService;
+    @MockBean
+    private JwtHelper jwtHelper;
 
-    
     @Autowired
-	private ModelMapper modelMapper;
-    
-    @Autowired
-	private AuthenticationManager manager;
-    @Autowired
-	private CustomUserDetailsService userDetailService;
+    private LoginController loginController;
 
-	@Autowired
-	private JwtHelper jwtHelper;
-    
-    
-    @Autowired
-	private UserService userService;
-    
+    @MockBean
+    private LoginDataService loginDataService;
+
+    @MockBean
+    private ModelMapper modelMapper;
+
+    @MockBean
+    private UserService userService;    
+
+
+   @Test
+   void testGetUserById() throws Exception {
+     
+       Object[] uriVariables = new Object[]{"42"};
+       MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders.post("/users/{userId}", uriVariables);
+       Object[] controllers = new Object[]{loginController};
+       MockMvc buildResult = MockMvcBuilders.standaloneSetup(controllers).build();
+
+      
+       ResultActions actualPerformResult = buildResult.perform(requestBuilder);
+
    
-	 
-	@PostMapping("/loginUser")
-	public ResponseEntity<JwtResponseDto> loginUser(@RequestBody LoginDto l) {
-		System.out.println("in login controller");
-		
-		doAuthenticate(l.getUserId(), l.getPassword());
-		
-		//LoginResponse loginResponse=new LoginResponse();
-		UserDetails userDetails = userDetailService.loadUserByUsername(l.getUserId());
-		
-		System.out.println(userDetails.getUsername()+"   "+userDetails.getPassword());
+   }
 
-		// generate jwt token and refresh token
-		String jwtToken = this.jwtHelper.generateToken(userDetails);
-		String refreshToken = this.jwtHelper.generateRefreshToken(userDetails);
-		
-		System.out.println("jwt token in controller "+jwtToken+"  "+refreshToken);
+ /* 
+   @Test
+   void testLoginUser() throws Exception {
+       // Arrange
+       // TODO: Populate arranged inputs
+       Object[] uriVariables = new Object[]{};
+       MockHttpServletRequestBuilder contentTypeResult = MockMvcRequestBuilders.post("/users/loginUser", uriVariables)
+               .contentType(MediaType.APPLICATION_JSON);
 
-		UserDto userDto = userService.fetchUserDetailsById(userDetails.getUsername());
-		userDto.setUserId(userDetails.getUsername());
+       LoginDto loginDto = new LoginDto();
+       loginDto.setPassword("ok");
+       loginDto.setUserId("42");
 
-		System.out.println(userDto.toString());
-		
-		JwtResponseDto response = JwtResponseDto.builder().accessToken(jwtToken).refreshToken(refreshToken)
-				.user(userDto).build();
-		System.out.println(response.toString());
-		
-		
-		return new ResponseEntity<JwtResponseDto>(response, HttpStatus.OK);
+       ObjectMapper objectMapper = new ObjectMapper();
+       MockHttpServletRequestBuilder requestBuilder = contentTypeResult.content(objectMapper.writeValueAsString(loginDto));
+       Object[] controllers = new Object[]{loginController};
+       MockMvc buildResult = MockMvcBuilders.standaloneSetup(controllers).build();
 
-//		System.out.println(l.toString());
-//		LocalDate date=LocalDate.now();
-//		LocalTime time=LocalTime.now();
-//		
-//		LoginResponse lr=new LoginResponse();
-//		lr.setStatus("");
-//		if(l.getUserId()!=null && l.getPassword()!=null) {
-//
-//			User loginUser=userService.checkUserId(l.getUserId());
-//			if(loginUser==null) {
-//				
-//				LoginData ld=new LoginData(l.getUserId(),"Invalid UserId and password",date,time);
-//				loginDataService.saveLoginData(ld);
-//				lr.setStatus("404");
-//				lr.setStatusMessage("NOT_FOUND");
-//				lr.setMessage("You have entered a Invalid UserId");
-//				
-//				return new ResponseEntity<LoginResponse>(lr,HttpStatus.NOT_FOUND);	
-//					
-//			}
-//			
-//			if(loginUser.getPassword().toString().equals(l.getPassword())) {
-//			
-//                UserDto userDto=modelMapper.map(loginUser, UserDto.class);
-//                
-//				lr=LoginResponse.builder().user(userDto).build();
-//				
-//				System.out.println("login success");
-//				lr.setStatus("200");
-//				lr.setStatusMessage("OK");
-//				lr.setMessage("Login Success");
-//				LoginData ld=new LoginData(l.getUserId(),"Login Success",date,time);
-//				loginDataService.saveLoginData(ld);
-//
-//				return new ResponseEntity<LoginResponse>(lr,HttpStatus.OK);	
-//				
-//			}else {
-//				
-//				LoginData ld=new LoginData(l.getUserId(),"Incorrect password",date,time);
-//				loginDataService.saveLoginData(ld);
-//				
-//				System.out.println("login failed"); 
-//				lr.setStatus("401");
-//				lr.setStatusMessage("Unauthorized");
-//				lr.setMessage("Wrong Password");
-//				
-//
-//				return new ResponseEntity<LoginResponse>(lr,HttpStatus.UNAUTHORIZED);	
-//				
-//			}
-//			
-//		}else {
-//			lr.setStatus("400");
-//			lr.setStatusMessage("Bad Request");
-//			lr.setMessage("Error in Data Transfer");
-//			return new ResponseEntity<LoginResponse>(lr,HttpStatus.BAD_REQUEST);
-//		}
-		
-	}
-	
+       // Act
+       ResultActions actualPerformResult = buildResult.perform(requestBuilder);
 
-	
-	@PostMapping("/{userId}")
-	public ResponseEntity<UserDto> getUserById(@PathVariable String userId){
-		System.out.println("in login controller get user by id");
-		UserDto ud=userService.fetchUserDetailsById(userId);
-		return new ResponseEntity<UserDto>(ud,HttpStatus.OK);
-	}
-	
-	@PutMapping("/{userId}")
-	public ResponseEntity<UserDto> updateUserDetails(@PathVariable String userId, @RequestBody UserDto userDto){
-		System.out.println("in login controller update user details");
-		
-		UserDto user=userService.updateUser(userId, userDto);
-		return new ResponseEntity<UserDto>(user,HttpStatus.OK);
-		
-	}
-	
-	
-	
-	
-	private void doAuthenticate(String email, String password) {
-		// check if email and password are correct
-		UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(email, password);
-		try {
-			manager.authenticate(authentication);
-		} catch (BadCredentialsException e) {
-			// throw this exception if invalid email or password
-			throw new UnauthorizedException("Invalid email or password!");
-		}
-	}
+       // Assert
+       // TODO: Add assertions on result
+   }
+*/
+  
+   @Test
+   void testUpdateUserDetails() throws Exception {
+    
+       Object[] uriVariables = new Object[]{"42"};
+       MockHttpServletRequestBuilder contentTypeResult = MockMvcRequestBuilders.put("/users/{userId}", uriVariables)
+               .contentType(MediaType.APPLICATION_JSON);
 
-	
+       UserDto userDto = new UserDto();
+       userDto.setAddress("42 Main St");
+       userDto.setCity("nashik");
+       userDto.setEmail("vishalkumar@gmail.com");
+       userDto.setFirstName("vishal");
+       userDto.setImage("Image");
+       userDto.setLastName("kumar");
+       userDto.setPinCode("Pin Code");
+       userDto.setState("MD");
+       userDto.setStreet("Street");
+       userDto.setUserId("42");
 
+       ObjectMapper objectMapper = new ObjectMapper();
+       MockHttpServletRequestBuilder requestBuilder = contentTypeResult.content(objectMapper.writeValueAsString(userDto));
+       Object[] controllers = new Object[]{loginController};
+       MockMvc buildResult = MockMvcBuilders.standaloneSetup(controllers).build();
+
+   
+       ResultActions actualPerformResult = buildResult.perform(requestBuilder);
+
+   }
 }
