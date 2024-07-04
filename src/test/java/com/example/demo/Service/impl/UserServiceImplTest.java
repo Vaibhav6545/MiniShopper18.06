@@ -1,4 +1,4 @@
-package com.example.demo.Service.impl;
+package minishopper.Service.impl;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -9,9 +9,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 
-import com.example.demo.Entity.User;
-import com.example.demo.Repository.UserRepository;
-import com.example.demo.Service.UserService;
+import minishopper.Entity.User;
+import minishopper.Repository.UserRepository;
+import minishopper.Service.UserService;
 
 @SpringBootTest
 class UserServiceImplTest {
