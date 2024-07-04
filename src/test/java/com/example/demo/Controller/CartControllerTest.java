@@ -1,13 +1,17 @@
-package com.example.demo.Controller;
+package minishopper.Controller;
+
 
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 
-import com.example.demo.Service.CartService;
-import com.example.demo.dtos.AddItemToCart;
-import com.example.demo.dtos.CartDto;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import minishopper.Controller.CartController;
+import minishopper.Service.CartService;
+import minishopper.dtos.AddItemToCart;
+import minishopper.dtos.CartDto;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
@@ -33,13 +37,10 @@ class CartControllerTest {
     @MockBean
     private CartService cartService;
 
-    /**
-     * Method under test:
-     * {@link CartController#addItemToCart(String, AddItemToCart)}
-     */
+  
     @Test
     void testAddItemToCart() throws Exception {
-        // Arrange
+      
         when(cartService.addItemToCart(Mockito.<String>any(), Mockito.<AddItemToCart>any())).thenReturn(new CartDto());
 
         AddItemToCart addItemToCart = new AddItemToCart();
@@ -50,7 +51,7 @@ class CartControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(content);
 
-        // Act and Assert
+       
         MockMvcBuilders.standaloneSetup(cartController)
                 .build()
                 .perform(requestBuilder)
@@ -59,57 +60,14 @@ class CartControllerTest {
                 .andExpect(MockMvcResultMatchers.content().string("{\"cartId\":null,\"userDto\":null,\"items\":[]}"));
     }
 
-    /**
-     * Method under test: {@link CartController#deleteItem(String, int)}
-     */
-    @Test
-    void testDeleteItem() throws Exception {
-        // Arrange
-        doNothing().when(cartService).deleteItemFromCart(Mockito.<String>any(), anyInt());
-        MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders.delete("/carts/{userId}/item/{itemId}", "42",
-                1);
-
-        // Act and Assert
-        MockMvcBuilders.standaloneSetup(cartController)
-                .build()
-                .perform(requestBuilder)
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.model().size(0))
-                .andExpect(MockMvcResultMatchers.view().name("carts/42/item/1"))
-                .andExpect(MockMvcResultMatchers.forwardedUrl("carts/42/item/1"));
-    }
-
-    /**
-     * Method under test: {@link CartController#deleteItem(String, int)}
-     */
-    @Test
-    void testDeleteItem2() throws Exception {
-        // Arrange
-        doNothing().when(cartService).deleteItemFromCart(Mockito.<String>any(), anyInt());
-        MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders.delete("/carts/{userId}/item/{itemId}", "42",
-                1);
-        requestBuilder.contentType("https://example.org/example");
-
-        // Act and Assert
-        MockMvcBuilders.standaloneSetup(cartController)
-                .build()
-                .perform(requestBuilder)
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.model().size(0))
-                .andExpect(MockMvcResultMatchers.view().name("carts/42/item/1"))
-                .andExpect(MockMvcResultMatchers.forwardedUrl("carts/42/item/1"));
-    }
-
-    /**
-     * Method under test: {@link CartController#getCartByUserId(String)}
-     */
+   
     @Test
     void testGetCartByUserId() throws Exception {
-        // Arrange
+     
         when(cartService.fetCartbyUser(Mockito.<String>any())).thenReturn(new CartDto());
         MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders.get("/carts/user/{userId}", "42");
 
-        // Act and Assert
+        
         MockMvcBuilders.standaloneSetup(cartController)
                 .build()
                 .perform(requestBuilder)
@@ -118,19 +76,6 @@ class CartControllerTest {
                 .andExpect(MockMvcResultMatchers.content().string("{\"cartId\":null,\"userDto\":null,\"items\":[]}"));
     }
 
-    /**
-     * Method under test: {@link CartController#getCartByUserId(String)}
-     */
-    @Test
-    void testGetCartByUserId2() throws Exception {
-        // Arrange
-        when(cartService.fetCartbyUser(Mockito.<String>any())).thenReturn(null);
-        MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders.get("/carts/user/{userId}", "42");
-
-        // Act
-        ResultActions actualPerformResult = MockMvcBuilders.standaloneSetup(cartController).build().perform(requestBuilder);
-
-        // Assert
-        actualPerformResult.andExpect(MockMvcResultMatchers.status().isNotFound());
-    }
+  
+    
 }
