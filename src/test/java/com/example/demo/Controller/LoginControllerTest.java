@@ -1,44 +1,56 @@
 package minishopper.Controller;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.util.ArrayList;
-
-import minishopper.dtos.AddressDto;
-import minishopper.dtos.LoginDto;
-import minishopper.dtos.UserDto;
-import minishopper.Entity.User;
-import minishopper.security.JwtHelper;
-import minishopper.Service.CustomUserDetailsService;
-import minishopper.Service.UserService;
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mockito;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.aot.DisabledInAotMode;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import minishopper.Entity.User;
+import minishopper.Repository.UserRepository;
+import minishopper.Service.CustomUserDetailsService;
+import minishopper.Service.UserService;
+import minishopper.Service.impl.UserServiceImpl;
+import minishopper.dtos.AddressDto;
+import minishopper.dtos.JwtResponseDto;
+import minishopper.dtos.LoginDto;
+import minishopper.dtos.UserDto;
+import minishopper.exception.InvalidInputException;
+import minishopper.security.JwtHelper;
 
 @ContextConfiguration(classes = {LoginController.class, AuthenticationManager.class})
 @ExtendWith(SpringExtension.class)
-@DisabledInAotMode
+
+@SpringBootTest
 class LoginControllerTest {
     @MockBean
     private AuthenticationManager authenticationManager;
 
-    @MockBean
+   @MockBean
     private CustomUserDetailsService customUserDetailsService;
 
     @MockBean
@@ -49,105 +61,359 @@ class LoginControllerTest {
 
     @MockBean
     private UserService userService;
+    
+   @Mock
+    private UserRepository userRepository; 
+    
+    @InjectMocks 
+    private UserServiceImpl userServiceImpl;
+    
+    @BeforeEach
+    public void setUp() {
+        MockitoAnnotations.openMocks(this);
+       
+    }
 
     @Test
-   
-    void testCheckUserId() {
-        
-        String userId = "42";
-        loginController.checkUserId(userId);
+    public void testCheckUserId_UserExists1() {
+
+        String userId = "existingUser";
+
+        User user = new User();
+
+        when(userService.checkUserId(userId)).thenReturn(user);
+
+        boolean result = loginController.checkUserId(userId);
+        assertTrue(result);
+
     }
+
+    @Test
+
+    public void testCheckUserId_UserDoesNotExist2() {
+
+        String userId = "nonExistingUser";
+        when(userService.checkUserId(userId)).thenReturn(null);
+        boolean result = loginController.checkUserId(userId);
+        assertFalse(result);
+
+    }
+
+  
+    @Test
+
+      public void testAddAddressDetails_InvalidUserId() {
+
+          // Arrange
+
+          String userId = "invalidUser";
+
+          AddressDto address = new AddressDto();
+
+          when(userService.checkUserId(userId)).thenReturn(null);
+
+          // Act & Assert
+
+          assertThrows(InvalidInputException.class, () -> {
+
+              loginController.addAddressDetails(userId, address);
+
+          });
+
+      }
+
+      @Test
+
+      public void testAddAddressDetails_ValidUserId() throws Exception {
+
+          // Arrange
+
+          String userId = "validUser";
+
+          AddressDto address = new AddressDto();
+
+          User user = new User();
+
+          user.setUserId(userId);
+
+          UserDto userDto = new UserDto();
+
+          userDto.setUserId(userId);
+
+          when(userService.checkUserId(userId)).thenReturn(user);
+
+          when(userService.addAddress(userId, address)).thenReturn(userDto);
+
+          // Act
+
+          ResponseEntity<UserDto> response = loginController.addAddressDetails(userId, address);
+
+          // Assert
+
+          assertEquals(HttpStatus.OK, response.getStatusCode());
+
+          assertEquals(userDto, response.getBody());
+
+      }
+
+  
+   
+  
+ 
+    
+    
+
+    @Test
+
+        public void testGetUserById_InvalidUserId() {
+
+            // Arrange
+
+            String userId = "invalidUser";
+
+            when(userService.checkUserId(userId)).thenReturn(null);
+
+            // Act & Assert
+
+            assertThrows(InvalidInputException.class, () -> {
+
+                loginController.getUserById(userId);
+
+            });
+
+        }
+
+        @Test
+
+        public void testGetUserById_ValidUserId() throws Exception {
+
+            // Arrange
+
+            String userId = "validUser";
+
+            User user = new User();
+
+            user.setUserId(userId);
+
+            UserDto userDto = new UserDto();
+
+            userDto.setUserId(userId);
+
+            when(userService.checkUserId(userId)).thenReturn(user);
+
+            when(userService.fetchUserDetailsById(userId)).thenReturn(userDto);
+
+            // Act
+
+            ResponseEntity<UserDto> response = loginController.getUserById(userId);
+
+            // Assert
+
+            assertEquals(HttpStatus.OK, response.getStatusCode());
+
+            assertEquals(userDto, response.getBody());
+
+        }
 
     
+  
     @Test
-    void testAddAddressDetails() throws Exception {
+     public void testLoginUser_InvalidUserId() {
+
+         // Mock data
+
+         LoginDto loginDto = new LoginDto();
+
+         loginDto.setUserId("invalidUser");
+
+         loginDto.setPassword("password");
+
+         // Define mock behavior
+
+         when(userService.checkUserId(loginDto.getUserId())).thenReturn(null);
+
+         // Invoke method and assert exception
+
+         BadCredentialsException exception = assertThrows(BadCredentialsException.class, () -> {
+
+             loginController.loginUser(loginDto);
+
+         });
+
+         // Verify exception message
+
+         assertEquals("Invalid UserId!", exception.getMessage());
+
+         // Verify interactions
+
+         verify(userService, times(1)).checkUserId(loginDto.getUserId());
+
+         verify(customUserDetailsService, never()).loadUserByUsername(anyString());
+
+         verify(jwtHelper, never()).generateToken(any());
+
+         verify(jwtHelper, never()).generateRefreshToken(any());
+
+     }
+
+     @Test
+
+     public void testLoginUser_InvalidCredentials() {
+
+         // Mock data
+
+         String userId = "validUser";
+
+         LoginDto loginDto = new LoginDto();
+
+         loginDto.setUserId(userId);
+
+         loginDto.setPassword("password");
+
+         loginDto.setRole("USER");
+
+         UserDto mockUserDto = new UserDto();
+
+         mockUserDto.setRole("ADMIN"); // Different role to trigger invalid credentials
+
+         UserDetails userDetails = mock(UserDetails.class);
+
+         when(userDetails.getUsername()).thenReturn(userId);
+
+         // Define mock behaviors
+
+         when(userService.checkUserId(loginDto.getUserId())).thenReturn(new User());
+
+         when(customUserDetailsService.loadUserByUsername(loginDto.getUserId())).thenReturn(userDetails);
+
+         when(userService.fetchUserDetailsById(userId)).thenReturn(mockUserDto);
+
+         // Invoke method and assert exception
+
+         BadCredentialsException exception = assertThrows(BadCredentialsException.class, () -> {
+
+             loginController.loginUser(loginDto);
+
+         });
+
+         // Verify exception message
+
+         assertEquals("Invalid Credentials!", exception.getMessage());
+
+         // Verify interactions
+
+         verify(userService, times(1)).checkUserId(loginDto.getUserId());
+
+         verify(customUserDetailsService, times(1)).loadUserByUsername(loginDto.getUserId());
+
+       //  verify(jwtHelper, never()).generateToken(any());
+
+        // verify(jwtHelper, never()).generateRefreshToken(any());
+
+     }
+
+     @Test
+
+     public void testLoginUser_Success() throws BadCredentialsException {
+
+         // Mock data
+
+         String userId = "validUser";
+
+         LoginDto loginDto = new LoginDto();
+
+         loginDto.setUserId(userId);
+
+         loginDto.setPassword("password");
+
+         loginDto.setRole("USER");
+
+         UserDto mockUserDto = new UserDto();
+
+         mockUserDto.setRole("USER"); // Matching role
+
+         UserDetails userDetails = mock(UserDetails.class);
+
+         when(userDetails.getUsername()).thenReturn(userId);
+
+         String jwtToken = "jwtToken";
+
+         String refreshToken = "refreshToken";
+
+         // Define mock behaviors
+
+         when(userService.checkUserId(loginDto.getUserId())).thenReturn(new User());
+
+         when(customUserDetailsService.loadUserByUsername(loginDto.getUserId())).thenReturn(userDetails);
+
+         when(jwtHelper.generateToken(userDetails)).thenReturn(jwtToken);
+
+         when(jwtHelper.generateRefreshToken(userDetails)).thenReturn(refreshToken);
+
+         when(userService.fetchUserDetailsById(userId)).thenReturn(mockUserDto);
+
+         // Invoke method
+
+         ResponseEntity<JwtResponseDto> response = loginController.loginUser(loginDto);
+
+         // Verify result
+
+         assertEquals(HttpStatus.OK, response.getStatusCode());
+
+         JwtResponseDto responseBody = response.getBody();
+
+         assertNotNull(responseBody);
+
+         assertEquals(jwtToken, responseBody.getAccessToken());
+
+         assertEquals(refreshToken, responseBody.getRefreshToken());
+
+         assertEquals(mockUserDto, responseBody.getUser());
+
+         // Verify interactions
+
+         verify(userService, times(1)).checkUserId(loginDto.getUserId());
+
+         verify(customUserDetailsService, times(1)).loadUserByUsername(loginDto.getUserId());
+
+         verify(jwtHelper, times(1)).generateToken(userDetails);
+
+         verify(jwtHelper, times(1)).generateRefreshToken(userDetails);
+
+         verify(userService, times(1)).fetchUserDetailsById(userId);
+
+     }
+
+ 
+  
+  
+    @Test
+    public void testUpdateUserDetails_InvalidUserId() {
+        // Arrange
+        String userId = "invalidUser";
+        AddressDto address = new AddressDto();
+        when(userService.checkUserId(userId)).thenReturn(null);
+        // Act & Assert
+        assertThrows(InvalidInputException.class, () -> {
+            loginController.updateUserDetails(userId, address);
+        });
+    }
+    @Test
+    public void testUpdateUserDetails_ValidUserId() throws Exception {
+        // Arrange
+        String userId = "validUser";
+        AddressDto address = new AddressDto();
         User user = new User();
-        user.setAddresses(new ArrayList<>());
-        user.setEmail("jane.doe@example.org");
-        user.setFirstName("Jane");
-        user.setLastName("Doe");
-        user.setOrders(new ArrayList<>());
-        user.setPassword("ok");
-        user.setRole("Role");
-        user.setUserId("42");
-        UserDto buildResult = UserDto.builder()
-                .email("jane.doe@example.org")
-                .firstName("Jane")
-                .lastName("Doe")
-                .password("ok")
-                .role("Role")
-                .userId("42")
-                .build();
-        when(userService.addAddress(Mockito.<String>any(), Mockito.<AddressDto>any())).thenReturn(buildResult);
-        when(userService.checkUserId(Mockito.<String>any())).thenReturn(user);
-
-        AddressDto addressDto = new AddressDto();
-        addressDto.setAddressId(1);
-        addressDto.setAddressLine("42 Main St");
-        addressDto.setAddressType("42 Main St");
-        addressDto.setCity("Oxford");
-        addressDto.setPinCode("Pin Code");
-        addressDto.setState("MD");
-        addressDto.setStreet("Street");
-        String content = (new ObjectMapper()).writeValueAsString(addressDto);
-        MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders.put("/users/addAddress/{userId}", "42")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(content);
-        MockMvc buildResult2 = MockMvcBuilders.standaloneSetup(loginController).build();
-        ResultActions actualPerformResult = buildResult2.perform(requestBuilder);
-        actualPerformResult.andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.content().contentType("application/json"))
-                .andExpect(MockMvcResultMatchers.content()
-                        .string(
-                                "{\"userId\":\"42\",\"password\":\"ok\",\"firstName\":\"Jane\",\"lastName\":\"Doe\",\"email\":\"jane.doe@example.org"
-                                        + "\",\"address\":null,\"role\":\"Role\"}"));
+        user.setUserId(userId);
+        UserDto userDto = new UserDto();
+        userDto.setUserId(userId);
+        when(userService.checkUserId(userId)).thenReturn(user);
+        when(userService.updateUser(userId, address)).thenReturn(userDto);
+        // Act
+        ResponseEntity<UserDto> response = loginController.updateUserDetails(userId, address);
+        // Assert
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(userDto, response.getBody());
     }
-
-  
-    @Test
-
-    void testGetUserById() throws Exception {
-        
-        MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders.post("/users/{userId}", "42");
-        MockMvc buildResult = MockMvcBuilders.standaloneSetup(loginController).build();
-     //   buildResult.perform(requestBuilder);
-    }
-
-   
-    @Test
-   
-    void testLoginUser() throws Exception {
-       
-        LoginDto loginDto = new LoginDto();
-        loginDto.setPassword("ok");
-        loginDto.setRole("Role");
-        loginDto.setUserId("42");
-        String content = (new ObjectMapper()).writeValueAsString(loginDto);
-        MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders.post("/users/loginUser")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(content);
-        MockMvc buildResult = MockMvcBuilders.standaloneSetup(loginController).build();
-      //  buildResult.perform(requestBuilder);
-    }
-
-   
-    @Test
-  
-    void testUpdateUserDetails() throws Exception {
-       
-        AddressDto addressDto = new AddressDto();
-        addressDto.setAddressId(1);
-        addressDto.setAddressLine("42 Main St");
-        addressDto.setAddressType("42 Main St");
-        addressDto.setCity("Oxford");
-        addressDto.setPinCode("Pin Code");
-        addressDto.setState("MD");
-        addressDto.setStreet("Street");
-        String content = (new ObjectMapper()).writeValueAsString(addressDto);
-        MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders.put("/users/{userId}", "42")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(content);
-        MockMvc buildResult = MockMvcBuilders.standaloneSetup(loginController).build();
-       // buildResult.perform(requestBuilder);
-    }
+ 
 }

@@ -1,216 +1,212 @@
 package minishopper.Controller;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.anyInt;
-import static org.mockito.Mockito.doNothing;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.util.ArrayList;
-
-import minishopper.dtos.AddItemToCartDto;
-import minishopper.dtos.CartDto;
-import minishopper.dtos.UserDto;
-import minishopper.Entity.Cart;
-import minishopper.Entity.CartItem;
-import minishopper.Entity.Product;
-import minishopper.Entity.User;
-import minishopper.exception.InvalidInputException;
-import minishopper.Service.CartService;
-import minishopper.Service.UserService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.aot.DisabledInAotMode;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-@ContextConfiguration(classes = {CartController.class})
+import minishopper.Entity.CartItem;
+import minishopper.Entity.User;
+import minishopper.Service.CartService;
+import minishopper.Service.UserService;
+import minishopper.dtos.AddItemToCartDto;
+import minishopper.dtos.CartDto;
+import minishopper.exception.InvalidInputException;
+import minishopper.exception.ResourceNotFoundException;
+
+@ContextConfiguration(classes = { CartController.class })
 @ExtendWith(SpringExtension.class)
 @DisabledInAotMode
 class CartControllerTest {
-    @Autowired
-    private CartController cartController;
+	@Autowired
+	private CartController cartController;
 
-    @MockBean
-    private CartService cartService;
+	@MockBean
+	private CartService cartService;
 
-    @MockBean
-    private UserService userService;
+	@MockBean
+	private UserService userService;
 
-    
-    @Test
-    void testCheckUserId() {
-        User user = new User();
-        user.setAddresses(new ArrayList<>());
-        user.setEmail("jane.doe@example.org");
-        user.setFirstName("Jane");
-        user.setLastName("Doe");
-        user.setOrders(new ArrayList<>());
-        user.setPassword("ok");
-        user.setRole("Role");
-        user.setUserId("42");
-        when(userService.checkUserId(Mockito.<String>any())).thenReturn(user);
-        String userId = "42";
-        boolean actualCheckUserIdResult = cartController.checkUserId(userId);
-        verify(userService).checkUserId(eq("42"));
-        assertTrue(actualCheckUserIdResult);
-    }
+	@BeforeEach
+	public void setUp() {
+		MockitoAnnotations.openMocks(this);
+	}
 
-    @Test
-    void testCheckUserId2() {
-        when(userService.checkUserId(Mockito.<String>any())).thenThrow(new InvalidInputException("An error occurred"));
-        String userId = "42";
-        assertThrows(InvalidInputException.class, () -> cartController.checkUserId(userId));
-        verify(userService).checkUserId(eq("42"));
-    }
+	@Test
+	public void checkUserId() {
+		String userId = "existingUser";
+		User mockUser = new User();
+		mockUser.setUserId(userId);
+		when(userService.checkUserId(userId)).thenReturn(mockUser);
+		boolean result = cartController.checkUserId(userId);
+		assertTrue(result);
+	}
 
-   
-    @Test
-    void testAddItemToCart() throws Exception {
-        CartDto.CartDtoBuilder cartIdResult = CartDto.builder().cartId("42");
-        CartDto.CartDtoBuilder itemsResult = cartIdResult.items(new ArrayList<>());
-        UserDto userDto = UserDto.builder()
-                .email("jane.doe@example.org")
-                .firstName("Jane")
-                .lastName("Doe")
-                .password("ok")
-                .role("Role")
-                .userId("42")
-                .build();
-        CartDto buildResult = itemsResult.userDto(userDto).build();
-        when(cartService.addItemToCart(Mockito.<String>any(), Mockito.<AddItemToCartDto>any())).thenReturn(buildResult);
+	@Test
+	public void testCheckUserId2() {
+		String userId = "nonExistentUser";
+		when(userService.checkUserId(userId)).thenReturn(null);
+		boolean result = cartController.checkUserId(userId);
+		assertFalse(result);
+	}
 
-        User user = new User();
-        user.setAddresses(new ArrayList<>());
-        user.setEmail("jane.doe@example.org");
-        user.setFirstName("Jane");
-        user.setLastName("Doe");
-        user.setOrders(new ArrayList<>());
-        user.setPassword("ok");
-        user.setRole("Role");
-        user.setUserId("42");
-        when(userService.checkUserId(Mockito.<String>any())).thenReturn(user);
+	@Test
 
-        AddItemToCartDto addItemToCartDto = new AddItemToCartDto();
-        addItemToCartDto.setProductId("42");
-        addItemToCartDto.setQuantity(1);
-        String content = (new ObjectMapper()).writeValueAsString(addItemToCartDto);
-        MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders.post("/carts/{userId}", "42")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(content);
-        MockMvc buildResult2 = MockMvcBuilders.standaloneSetup(cartController).build();
-        ResultActions actualPerformResult = buildResult2.perform(requestBuilder);
-        actualPerformResult.andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.content().contentType("application/json"))
-                .andExpect(MockMvcResultMatchers.content()
-                        .string(
-                                "{\"cartId\":\"42\",\"userDto\":{\"userId\":\"42\",\"password\":\"ok\",\"firstName\":\"Jane\",\"lastName\":\"Doe\","
-                                        + "\"email\":\"jane.doe@example.org\",\"address\":null,\"role\":\"Role\"},\"items\":[]}"));
-    }
+	public void testAddItemToCart_ValidUser() throws InvalidInputException, ResourceNotFoundException {
+		String userId = "validUser";
+		User mockUser = new User();
+		mockUser.setUserId(userId);
+		AddItemToCartDto mockItem = new AddItemToCartDto();
+		CartDto mockCart = new CartDto();
+		when(userService.checkUserId(userId)).thenReturn(mockUser);
+		when(cartService.addItemToCart(userId, mockItem)).thenReturn(mockCart);
+		ResponseEntity<CartDto> response = cartController.addItemToCart(userId, mockItem);
+		assertEquals(HttpStatus.OK, response.getStatusCode());
+		assertEquals(mockCart, response.getBody());
+	}
 
-    @Test
-    void testDeleteItem() throws Exception {
-        User user = new User();
-        user.setAddresses(new ArrayList<>());
-        user.setEmail("jane.doe@example.org");
-        user.setFirstName("Jane");
-        user.setLastName("Doe");
-        user.setOrders(new ArrayList<>());
-        user.setPassword("ok");
-        user.setRole("Role");
-        user.setUserId("42");
+	@Test
 
-        Cart cart = new Cart();
-        cart.setCartId("42");
-        cart.setItems(new ArrayList<>());
-        cart.setUser(user);
+	public void testAddItemToCart_InvalidUser() {
+		String userId = "invalidUser";
+		AddItemToCartDto mockItem = new AddItemToCartDto();
+		when(userService.checkUserId(userId)).thenReturn(null);
+		InvalidInputException exception = assertThrows(InvalidInputException.class, () -> {
+			cartController.addItemToCart(userId, mockItem);
 
-        Product product = new Product();
-        product.setBrand("Brand");
-        product.setCategory("Category");
-        product.setDiscountedPrice(10.0d);
-        product.setImage("Image");
-        product.setProductId("42");
-        product.setProductName("Product Name");
-        product.setShortDescription("Short Description");
-        product.setStock(1);
-        product.setUnitPrice(10.0d);
+		});
 
-        CartItem cartItem = new CartItem();
-        cartItem.setCart(cart);
-        cartItem.setCartItemId(1);
-        cartItem.setProduct(product);
-        cartItem.setQuantity(1);
-        cartItem.setTotalPrice(10.0d);
-        doNothing().when(cartService).deleteItemFromCart(Mockito.<String>any(), anyInt());
-        when(cartService.getCartItemById(anyInt())).thenReturn(cartItem);
+		assertEquals("Invalid UserId !", exception.getMessage());
+	}
 
-        User user2 = new User();
-        user2.setAddresses(new ArrayList<>());
-        user2.setEmail("jane.doe@example.org");
-        user2.setFirstName("Jane");
-        user2.setLastName("Doe");
-        user2.setOrders(new ArrayList<>());
-        user2.setPassword("ok");
-        user2.setRole("Role");
-        user2.setUserId("42");
-        when(userService.checkUserId(Mockito.<String>any())).thenReturn(user2);
-        MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders.delete("/carts/{userId}/item/{itemId}", "42",
-                1);
-        MockMvc buildResult = MockMvcBuilders.standaloneSetup(cartController).build();
-        ResultActions actualPerformResult = buildResult.perform(requestBuilder);
-        actualPerformResult.andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.content().contentType("text/plain;charset=ISO-8859-1"))
-                .andExpect(MockMvcResultMatchers.content().string("Deleted Successfully"));
-    }
+	@Test
+	public void testAddItemToCart_ResourceNotFound() throws InvalidInputException {
 
-    @Test
-    void testGetCartByUserId() throws Exception {
-        CartDto.CartDtoBuilder cartIdResult = CartDto.builder().cartId("42");
-        CartDto.CartDtoBuilder itemsResult = cartIdResult.items(new ArrayList<>());
-        UserDto userDto = UserDto.builder()
-                .email("jane.doe@example.org")
-                .firstName("Jane")
-                .lastName("Doe")
-                .password("ok")
-                .role("Role")
-                .userId("42")
-                .build();
-        CartDto buildResult = itemsResult.userDto(userDto).build();
-        when(cartService.fetCartbyUser(Mockito.<String>any())).thenReturn(buildResult);
+		String userId = "validUser";
+		User mockUser = new User();
+		mockUser.setUserId(userId);
+		AddItemToCartDto mockItem = new AddItemToCartDto();
+		when(userService.checkUserId(userId)).thenReturn(mockUser);
+		when(cartService.addItemToCart(userId, mockItem)).thenThrow(new ResourceNotFoundException("Item not found"));
+		ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
+			cartController.addItemToCart(userId, mockItem);
+		});
+		assertEquals("Item not found", exception.getMessage());
 
-        User user = new User();
-        user.setAddresses(new ArrayList<>());
-        user.setEmail("jane.doe@example.org");
-        user.setFirstName("Jane");
-        user.setLastName("Doe");
-        user.setOrders(new ArrayList<>());
-        user.setPassword("ok");
-        user.setRole("Role");
-        user.setUserId("42");
-        when(userService.checkUserId(Mockito.<String>any())).thenReturn(user);
-        MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders.post("/carts/user/{userId}", "42");
-        MockMvc buildResult2 = MockMvcBuilders.standaloneSetup(cartController).build();
-        ResultActions actualPerformResult = buildResult2.perform(requestBuilder);
-        actualPerformResult.andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.content().contentType("application/json"))
-                .andExpect(MockMvcResultMatchers.content()
-                        .string(
-                                "{\"cartId\":\"42\",\"userDto\":{\"userId\":\"42\",\"password\":\"ok\",\"firstName\":\"Jane\",\"lastName\":\"Doe\","
-                                        + "\"email\":\"jane.doe@example.org\",\"address\":null,\"role\":\"Role\"},\"items\":[]}"));
-    }
+	}
+
+	
+	@Test
+
+	public void testDeleteItem_Success() throws InvalidInputException, ResourceNotFoundException {
+		String userId = "validUser";
+		int itemId = 1;
+		when(userService.checkUserId(userId)).thenReturn(new User());
+		when(cartService.getCartItemById(itemId)).thenReturn(new CartItem());
+		ResponseEntity<String> response = cartController.deleteItem(userId, itemId);
+		assertEquals(HttpStatus.OK, response.getStatusCode());
+		assertEquals("Deleted Successfully", response.getBody());
+		verify(cartService, times(1)).deleteItemFromCart(userId, itemId);
+
+	}
+
+	@Test
+	public void testDeleteItem_InvalidUserId() {
+		String userId = "invalidUser";
+		int itemId = 1;
+		when(userService.checkUserId(userId)).thenReturn(null);
+		InvalidInputException exception = assertThrows(InvalidInputException.class, () -> {
+			cartController.deleteItem(userId, itemId);
+		});
+		assertEquals("Invalid UserId !", exception.getMessage());
+		verify(cartService, never()).deleteItemFromCart(anyString(), anyInt());
+	}
+
+	@Test
+	public void testDeleteItem_InvalidItemId() {
+		String userId = "validUser";
+		int itemId = 0;
+		when(userService.checkUserId(userId)).thenReturn(new User());
+		InvalidInputException exception = assertThrows(InvalidInputException.class, () -> {
+
+			cartController.deleteItem(userId, itemId);
+		});
+
+		assertEquals("Invalid ItemId !", exception.getMessage());
+
+		verify(cartService, never()).deleteItemFromCart(anyString(), anyInt());
+	}
+
+	@Test
+	public void testDeleteItem_ItemNotFound() throws InvalidInputException {
+
+		String userId = "validUser";
+		int itemId = 1;
+		when(userService.checkUserId(userId)).thenReturn(new User());
+
+		when(cartService.getCartItemById(itemId)).thenReturn(null);
+		ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
+			cartController.deleteItem(userId, itemId);
+
+		});
+
+		assertEquals("Cart Item Not Found", exception.getMessage());
+		verify(cartService, never()).deleteItemFromCart(anyString(), anyInt());
+
+	}
+
+	@Test
+	public void getCartByUserId() throws InvalidInputException, ResourceNotFoundException {
+
+		String userId = "validUser";
+		User mockUser = new User();
+		mockUser.setUserId(userId);
+		CartDto mockCart = new CartDto();
+		when(userService.checkUserId(userId)).thenReturn(mockUser);
+		when(cartService.fetCartbyUser(userId)).thenReturn(mockCart);
+		ResponseEntity<CartDto> response = cartController.getCartByUserId(userId);
+		assertEquals(HttpStatus.OK, response.getStatusCode());
+		assertEquals(mockCart, response.getBody());
+	}
+
+	@Test
+	public void getCartByUserId2() {
+		String userId = "invalidUser";
+		when(userService.checkUserId(userId)).thenReturn(null);
+		InvalidInputException exception = assertThrows(InvalidInputException.class, () -> {
+			cartController.getCartByUserId(userId);
+		});
+		assertEquals("Invalid UserId !", exception.getMessage());
+	}
+
+	@Test
+	public void getCartByUserId3() throws InvalidInputException {
+		String userId = "validUser";
+		User mockUser = new User();
+		mockUser.setUserId(userId);
+		when(userService.checkUserId(userId)).thenReturn(mockUser);
+		when(cartService.fetCartbyUser(userId)).thenThrow(new ResourceNotFoundException("Cart not found"));
+		ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
+			cartController.getCartByUserId(userId);
+		});
+		assertEquals("Cart not found", exception.getMessage());
+	}
 }

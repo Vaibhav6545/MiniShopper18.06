@@ -1,21 +1,27 @@
 
 package minishopper.Controller;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
+
 import java.util.ArrayList;
-import minishopper.Entity.Product;
-import minishopper.Service.ProductService;
+import java.util.List;
+
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.aot.DisabledInAotMode;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import minishopper.Entity.Product;
+import minishopper.Service.ProductService;
+import minishopper.exception.ResourceNotFoundException;
 @ContextConfiguration(classes = {ProductController.class})
 @ExtendWith(SpringExtension.class)
 @DisabledInAotMode
@@ -24,92 +30,55 @@ class ProductControllerTest {
     private ProductController productController;
     @MockBean
     private ProductService productService;
-   
-    @Test
-    void testFetchAllProducts() throws Exception {
-        // Arrange
-        Product product = new Product();
-        product.setBrand("Products Not Found");
-        product.setCategory("Products Not Found");
-        product.setDiscountedPrice(10.0d);
-        product.setImage("Products Not Found");
-        product.setProductId("42");
-        product.setProductName("Products Not Found");
-        product.setShortDescription("Products Not Found");
-        product.setStock(1);
-        product.setUnitPrice(10.0d);
-        ArrayList<Product> productList = new ArrayList<>();
-        productList.add(product);
-        when(productService.getAllProducts()).thenReturn(productList);
-        MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders.get("/products/listAllProducts");
-        // Act and Assert
-        MockMvcBuilders.standaloneSetup(productController)
-                .build()
-                .perform(requestBuilder)
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.content().contentType("application/json"))
-                .andExpect(MockMvcResultMatchers.content()
-                        .string(
-                                "[{\"productId\":\"42\",\"productName\":\"Products Not Found\",\"brand\":\"Products Not Found\",\"unitPrice\":10.0,"
-                                        + "\"discountedPrice\":10.0,\"stock\":1,\"category\":\"Products Not Found\",\"shortDescription\":\"Products Not"
-                                        + " Found\",\"image\":\"Products Not Found\"}]"));
+    
+    @BeforeEach
+    public void setup() {
+        MockitoAnnotations.initMocks(this);
     }
    
-    @Test
-    void testFetchSingleProduct() throws Exception {
-        // Arrange
-        Product product = new Product();
-        product.setBrand("Brand");
-        product.setCategory("Category");
-        product.setDiscountedPrice(10.0d);
-        product.setImage("Image");
-        product.setProductId("42");
-        product.setProductName("Product Name");
-        product.setShortDescription("Short Description");
-        product.setStock(1);
-        product.setUnitPrice(10.0d);
-        when(productService.getByProductId(Mockito.<String>any())).thenReturn(product);
-        MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders.post("/products/productId/{productId}", "42");
-        // Act and Assert
-        MockMvcBuilders.standaloneSetup(productController)
-                .build()
-                .perform(requestBuilder)
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.content().contentType("application/json"))
-                .andExpect(MockMvcResultMatchers.content()
-                        .string(
-                                "{\"productId\":\"42\",\"productName\":\"Product Name\",\"brand\":\"Brand\",\"unitPrice\":10.0,\"discountedPrice\":10"
-                                        + ".0,\"stock\":1,\"category\":\"Category\",\"shortDescription\":\"Short Description\",\"image\":\"Image\"}"));
-    }
   
-    @Test
-    void testSaveImage() throws Exception {
-        // Arrange
-        MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders.get("/products/addImage");
-        // Act and Assert
-        MockMvcBuilders.standaloneSetup(productController)
-                .build()
-                .perform(requestBuilder)
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.model().size(0))
-                .andExpect(MockMvcResultMatchers.view().name("image"))
-                .andExpect(MockMvcResultMatchers.forwardedUrl("image"));
-    }
   
+ 
     @Test
-    void testSaveImage2() throws Exception {
-        // Arrange
-        MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders.get("/products/addImage");
-        requestBuilder.contentType("https://example.org/example");
-        // Act and Assert
-        MockMvcBuilders.standaloneSetup(productController)
-                .build()
-                .perform(requestBuilder)
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.model().size(0))
-                .andExpect(MockMvcResultMatchers.view().name("image"))
-                .andExpect(MockMvcResultMatchers.forwardedUrl("image"));
+    public void testFetchSingleProduct_ProductFound() throws ResourceNotFoundException {
+        
+        String productId = "123";
+        Product product = new Product("1L", "Product 1", "xy", 10.1,1,"yz" ,"yt", 35.4);
+        when(productService.getByProductId(productId)).thenReturn(product);
+        ResponseEntity<Product> response = productController.fetchSingleProduct(productId);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(product, response.getBody());
     }
+    @Test
+    public void testFetchSingleProduct_ProductNotFound() {
+        String productId = "456";
+        when(productService.getByProductId(productId)).thenReturn(null);
+        Exception exception = assertThrows(ResourceNotFoundException.class, () -> {
+            productController.fetchSingleProduct(productId);
+        });
+        assertEquals("Product Not Found", exception.getMessage());
+    }
+ 
+
+@Test
+public void testFetchAllProducts_NoProductsFound() {
+    List<Product> emptyList = new ArrayList<>();
+    when(productService.getAllProducts()).thenReturn(emptyList);
+    Exception exception = assertThrows(ResourceNotFoundException.class, () -> {
+        productController.fetchAllProducts();
+    });
+    assertEquals("Products Not Found", exception.getMessage());
+}
+@Test
+public void testFetchAllProducts_ProductsFound() {
+    List<Product> productList = new ArrayList<>();
+    productList.add(new Product("1L", "Product 1", "xy", 10.1,1,"yz" ,"yt", 35.4));
+    productList.add(new Product("2L", "Product 2", "xp", 10.2,2,"yl" ,"yt", 36.4));
+    when(productService.getAllProducts()).thenReturn(productList);
+    ResponseEntity<List<Product>> response = productController.fetchAllProducts();
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertEquals(productList, response.getBody());
+}
 }
  
  

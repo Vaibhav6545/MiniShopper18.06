@@ -1,10 +1,15 @@
 package minishopper.Controller;
 
+import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -13,6 +18,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import minishopper.dtos.ChangeOrderStatusDto;
 import minishopper.dtos.CreateExcelOrderRequestDto;
@@ -23,6 +30,8 @@ import minishopper.dtos.OrderDto;
 import minishopper.dtos.OrderItemDto;
 import minishopper.dtos.UpdateOrderItemDto;
 import minishopper.dtos.UserDto;
+import minishopper.exception.InvalidInputException;
+import minishopper.exception.ResourceNotFoundException;
 import minishopper.Entity.Order;
 import minishopper.Entity.OrderItem;
 import minishopper.Entity.Product;
@@ -30,12 +39,17 @@ import minishopper.Entity.User;
 import minishopper.Service.OrderService;
 import minishopper.Service.ProductService;
 import minishopper.Service.UserService;
+
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.aot.DisabledInAotMode;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -60,6 +74,12 @@ class OrderControllerTest {
 
     @MockBean
     private UserService userService;
+
+    
+    @BeforeEach
+    public void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
 
    
     @Test
